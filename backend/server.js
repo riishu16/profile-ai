@@ -10,7 +10,6 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 app.use(cors());
 
-// Serve the frontend folder (works from any working directory)
 app.use(express.static(path.join(__dirname, "..", "frontend")));
 
 mongoose
@@ -18,7 +17,6 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB error:", err.message));
 
-// Send the resume + job description to the Python AI service
 async function callAI(file, jd) {
   const form = new FormData();
   form.append("resume", new Blob([file.buffer]), file.originalname);
@@ -27,7 +25,7 @@ async function callAI(file, jd) {
   const res = await fetch(`${process.env.AI_URL}/analyze`, {
     method: "POST",
     body: form,
-    signal: AbortSignal.timeout(120000), // 2 minutes (the AI service can be asleep on the free plan)
+    signal: AbortSignal.timeout(120000),
   });
   if (!res.ok) throw new Error("AI service error");
 
@@ -48,7 +46,6 @@ async function saveResult(d) {
   });
 }
 
-// Simple check route (open /health in the browser to see if the server is up)
 app.get("/health", (_, res) => res.json({ status: "ok" }));
 
 // Candidate mode: 1 resume
@@ -59,7 +56,6 @@ app.post("/api/analyze", upload.single("resume"), async (req, res) => {
     }
     const data = await callAI(req.file, req.body.jobDescription);
 
-    // A database problem should not hide a successful AI result
     try {
       await saveResult(data);
     } catch (dbError) {
@@ -72,7 +68,6 @@ app.post("/api/analyze", upload.single("resume"), async (req, res) => {
   }
 });
 
-// Recruiter mode: many resumes, ranked by score
 app.post("/api/rank", upload.array("resumes", 20), async (req, res) => {
   try {
     if (!req.files || !req.files.length || !req.body.jobDescription) {
@@ -81,7 +76,6 @@ app.post("/api/rank", upload.array("resumes", 20), async (req, res) => {
 
     const results = [];
     for (const f of req.files) {
-      // One by one, to stay inside the AI rate limit
       try {
         const d = await callAI(f, req.body.jobDescription);
         try {
@@ -110,6 +104,5 @@ app.get("/api/history", async (_, res) => {
   }
 });
 
-// Render gives the port through the PORT variable. Locally it stays 5000.
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
