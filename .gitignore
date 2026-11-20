@@ -1,0 +1,19 @@
+# Node
+node_modules/
+
+# Secret keys (Groq key, Mongo URI)
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Test resumes (personal data)
+resumes/
+
+# Logs aur system files
+*.log
+.DS_Store
